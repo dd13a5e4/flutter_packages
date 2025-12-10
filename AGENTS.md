@@ -156,3 +156,7 @@ dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-release-inf
 - `--base-branch=origin/main`: Diffs against the `main` branch to find changed packages.
 
 If you update manually, follow semantic versioning and the repository's CHANGELOG format.
+
+## Special Notes
+
+- 使用**臺灣繁體中文**對話
