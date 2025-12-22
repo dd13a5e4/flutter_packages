@@ -163,4 +163,16 @@ public class CameraPropertiesImpl implements CameraProperties {
     return cameraCharacteristics.get(
         CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES);
   }
+
+  @Nullable
+  @Override
+  public int[] getRequestAvailableCapabilities() {
+    return cameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES);
+  }
+
+  @Nullable
+  @Override
+  public Integer getJpegMaxSize() {
+    return cameraCharacteristics.get(CameraCharacteristics.JPEG_MAX_SIZE);
+  }
 }

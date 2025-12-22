@@ -254,6 +254,43 @@ class MethodChannelCamera extends CameraPlatform {
   }
 
   @override
+  Future<List<XFile>> takePictureBurst(int cameraId, int count) async {
+    final List<Object?>? paths = await _channel.invokeMethod<List<Object?>>(
+      'takePictureBurst',
+      <String, dynamic>{'cameraId': cameraId, 'count': count},
+    );
+
+    if (paths == null) {
+      throw CameraException(
+        'INVALID_PATH',
+        'The platform "$defaultTargetPlatform" did not return any paths while reporting success. The platform should always return valid paths or report an error.',
+      );
+    }
+
+    return paths.map((Object? path) => XFile(path! as String)).toList();
+  }
+
+  @override
+  Future<bool> supportsBurstCapture(int cameraId) async {
+    final bool? supported = await _channel.invokeMethod<bool>(
+      'supportsBurstCapture',
+      <String, dynamic>{'cameraId': cameraId},
+    );
+
+    return supported ?? false;
+  }
+
+  @override
+  Future<int> getBurstCaptureMaxCount(int cameraId) async {
+    final int? maxCount = await _channel.invokeMethod<int>(
+      'getBurstCaptureMaxCount',
+      <String, dynamic>{'cameraId': cameraId},
+    );
+
+    return maxCount ?? 0;
+  }
+
+  @override
   Future<void> prepareForVideoRecording() =>
       _channel.invokeMethod<void>('prepareForVideoRecording');
 

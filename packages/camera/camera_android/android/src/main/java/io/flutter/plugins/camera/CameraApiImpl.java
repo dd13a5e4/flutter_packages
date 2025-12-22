@@ -173,6 +173,23 @@ final class CameraApiImpl implements Messages.CameraApi {
   }
 
   @Override
+  public void takePictureBurst(@NonNull Long count, @NonNull Messages.Result<List<String>> result) {
+    camera.takePictureBurst(count.intValue(), result);
+  }
+
+  @NonNull
+  @Override
+  public Boolean supportsBurstCapture() {
+    return camera != null && camera.supportsBurstCapture();
+  }
+
+  @NonNull
+  @Override
+  public Long getBurstCaptureMaxCount() {
+    return camera == null ? 0L : (long) camera.getBurstCaptureMaxCount();
+  }
+
+  @Override
   public void startVideoRecording(@NonNull Boolean enableStream) {
     camera.startVideoRecording(enableStream ? imageStreamChannel : null);
   }

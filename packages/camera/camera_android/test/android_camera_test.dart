@@ -561,6 +561,47 @@ void main() {
       expect(file.path, '/test/path.jpg');
     });
 
+    test(
+      'Should take a burst of pictures and return XFile instances',
+      () async {
+        // Arrange
+        when(
+          mockCameraApi.takePictureBurst(2),
+        ).thenAnswer((_) async => <String>['/test/a.jpg', '/test/b.jpg']);
+
+        // Act
+        final List<XFile> files = await camera.takePictureBurst(cameraId, 2);
+
+        // Assert
+        expect(files.map((XFile file) => file.path), <String>[
+          '/test/a.jpg',
+          '/test/b.jpg',
+        ]);
+      },
+    );
+
+    test('Should report whether burst capture is supported', () async {
+      // Arrange
+      when(mockCameraApi.supportsBurstCapture()).thenAnswer((_) async => true);
+
+      // Act
+      final bool supported = await camera.supportsBurstCapture(cameraId);
+
+      // Assert
+      expect(supported, isTrue);
+    });
+
+    test('Should get the max burst capture count', () async {
+      // Arrange
+      when(mockCameraApi.getBurstCaptureMaxCount()).thenAnswer((_) async => 8);
+
+      // Act
+      final int maxCount = await camera.getBurstCaptureMaxCount(cameraId);
+
+      // Assert
+      expect(maxCount, 8);
+    });
+
     test('Should start recording a video', () async {
       // Arrange
       // Act

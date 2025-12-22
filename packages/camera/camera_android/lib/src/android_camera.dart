@@ -199,6 +199,22 @@ class AndroidCamera extends CameraPlatform {
     return XFile(path);
   }
 
+  @override
+  Future<List<XFile>> takePictureBurst(int cameraId, int count) async {
+    final List<String> paths = await _hostApi.takePictureBurst(count);
+    return paths.map(XFile.new).toList();
+  }
+
+  @override
+  Future<bool> supportsBurstCapture(int cameraId) async {
+    return _hostApi.supportsBurstCapture();
+  }
+
+  @override
+  Future<int> getBurstCaptureMaxCount(int cameraId) async {
+    return _hostApi.getBurstCaptureMaxCount();
+  }
+
   // This optimization is unnecessary on Android.
   @override
   Future<void> prepareForVideoRecording() async {}

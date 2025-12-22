@@ -125,6 +125,15 @@ class FakeController extends ValueNotifier<CameraValue>
   Future<XFile> takePicture() async => XFile('');
 
   @override
+  Future<List<XFile>> takePictureBurst(int count) async => <XFile>[];
+
+  @override
+  Future<bool> supportsBurstCapture() async => false;
+
+  @override
+  Future<int> getBurstCaptureMaxCount() async => 0;
+
+  @override
   Future<void> unlockCaptureOrientation() async {}
 
   @override

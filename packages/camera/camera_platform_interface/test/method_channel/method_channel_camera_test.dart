@@ -654,6 +654,74 @@ void main() {
         expect(file.path, '/test/path.jpg');
       });
 
+      test(
+        'Should take a burst of pictures and return XFile instances',
+        () async {
+          // Arrange
+          final MethodChannelMock channel = MethodChannelMock(
+            channelName: 'plugins.flutter.io/camera',
+            methods: <String, dynamic>{
+              'takePictureBurst': <String>['/test/a.jpg', '/test/b.jpg'],
+            },
+          );
+
+          // Act
+          final List<XFile> files = await camera.takePictureBurst(cameraId, 2);
+
+          // Assert
+          expect(channel.log, <Matcher>[
+            isMethodCall(
+              'takePictureBurst',
+              arguments: <String, Object?>{'cameraId': cameraId, 'count': 2},
+            ),
+          ]);
+          expect(files.map((XFile file) => file.path), <String>[
+            '/test/a.jpg',
+            '/test/b.jpg',
+          ]);
+        },
+      );
+
+      test('Should check if burst capture is supported', () async {
+        // Arrange
+        final MethodChannelMock channel = MethodChannelMock(
+          channelName: 'plugins.flutter.io/camera',
+          methods: <String, dynamic>{'supportsBurstCapture': true},
+        );
+
+        // Act
+        final bool supported = await camera.supportsBurstCapture(cameraId);
+
+        // Assert
+        expect(supported, isTrue);
+        expect(channel.log, <Matcher>[
+          isMethodCall(
+            'supportsBurstCapture',
+            arguments: <String, Object?>{'cameraId': cameraId},
+          ),
+        ]);
+      });
+
+      test('Should get the max burst capture count', () async {
+        // Arrange
+        final MethodChannelMock channel = MethodChannelMock(
+          channelName: 'plugins.flutter.io/camera',
+          methods: <String, dynamic>{'getBurstCaptureMaxCount': 7},
+        );
+
+        // Act
+        final int maxCount = await camera.getBurstCaptureMaxCount(cameraId);
+
+        // Assert
+        expect(maxCount, 7);
+        expect(channel.log, <Matcher>[
+          isMethodCall(
+            'getBurstCaptureMaxCount',
+            arguments: <String, Object?>{'cameraId': cameraId},
+          ),
+        ]);
+      });
+
       test('Should prepare for video recording', () async {
         // Arrange
         final MethodChannelMock channel = MethodChannelMock(

@@ -272,4 +272,26 @@ public interface CameraProperties {
    */
   @NonNull
   int[] getAvailableNoiseReductionModes();
+
+  /**
+   * Returns the list of available request capabilities for this camera device.
+   *
+   * <p>By default maps to the @see
+   * android.hardware.camera2.CameraCharacteristics#REQUEST_AVAILABLE_CAPABILITIES key.
+   *
+   * @return int[] List of request capabilities supported by this camera device.
+   */
+  @Nullable
+  int[] getRequestAvailableCapabilities();
+
+  /**
+   * Returns the maximum size in bytes for a JPEG image.
+   *
+   * <p>By default maps to the @see android.hardware.camera2.CameraCharacteristics#JPEG_MAX_SIZE
+   * key.
+   *
+   * @return Integer maximum JPEG size in bytes, or null if unavailable.
+   */
+  @Nullable
+  Integer getJpegMaxSize();
 }

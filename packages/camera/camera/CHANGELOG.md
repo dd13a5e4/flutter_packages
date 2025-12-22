@@ -1,3 +1,7 @@
+## 0.12.0
+
+* Adds burst capture APIs for platforms that support hardware burst capture.
+
 ## 0.11.3
 
 * Adds support to configure persistent recording on Android. See `CameraController.startVideoRecording(enablePersistentRecording)`.

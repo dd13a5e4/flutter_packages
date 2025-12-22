@@ -1,3 +1,7 @@
+## 0.6.25
+
+* Reports unsupported status for the new burst capture APIs.
+
 ## 0.6.24
 
 * Change plugin to assume mp4 format for capture videos.

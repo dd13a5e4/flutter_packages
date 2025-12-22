@@ -477,6 +477,34 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
   }
 
+  /// Captures multiple images in a single burst and returns the files.
+  ///
+  /// Throws a [CameraException] if the capture fails.
+  Future<List<XFile>> takePictureBurst(int count) async {
+    _throwIfNotInitialized('takePictureBurst');
+    if (count <= 0) {
+      throw ArgumentError('count must be greater than 0.');
+    }
+    if (value.isTakingPicture) {
+      throw CameraException(
+        'Previous capture has not returned yet.',
+        'takePictureBurst was called before the previous capture returned.',
+      );
+    }
+    try {
+      value = value.copyWith(isTakingPicture: true);
+      final List<XFile> files = await CameraPlatform.instance.takePictureBurst(
+        _cameraId,
+        count,
+      );
+      value = value.copyWith(isTakingPicture: false);
+      return files;
+    } on PlatformException catch (e) {
+      value = value.copyWith(isTakingPicture: false);
+      throw CameraException(e.code, e.message);
+    }
+  }
+
   /// Start streaming images from platform camera.
   ///
   /// Settings for capturing images on iOS and Android is set to always use the
@@ -897,6 +925,18 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// Check whether the camera platform supports image streaming.
   bool supportsImageStreaming() =>
       CameraPlatform.instance.supportsImageStreaming();
+
+  /// Check whether the camera supports burst capture.
+  Future<bool> supportsBurstCapture() async {
+    _throwIfNotInitialized('supportsBurstCapture');
+    return CameraPlatform.instance.supportsBurstCapture(_cameraId);
+  }
+
+  /// Returns the maximum burst capture count supported by the camera.
+  Future<int> getBurstCaptureMaxCount() async {
+    _throwIfNotInitialized('getBurstCaptureMaxCount');
+    return CameraPlatform.instance.getBurstCaptureMaxCount(_cameraId);
+  }
 
   /// Releases the resources of this camera.
   @override

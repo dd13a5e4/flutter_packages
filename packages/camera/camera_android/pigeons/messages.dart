@@ -131,6 +131,16 @@ abstract class CameraApi {
   @async
   String takePicture();
 
+  /// Takes a burst of pictures on the camera and returns the file paths.
+  @async
+  List<String> takePictureBurst(int count);
+
+  /// Returns true if the camera supports burst capture.
+  bool supportsBurstCapture();
+
+  /// Returns the maximum burst capture count supported by the camera.
+  int getBurstCaptureMaxCount();
+
   /// Starts recording a video on the camera with the given ID.
   void startVideoRecording(bool enableStream);
 

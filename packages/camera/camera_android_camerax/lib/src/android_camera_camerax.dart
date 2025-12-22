@@ -1048,6 +1048,20 @@ class AndroidCameraCameraX extends CameraPlatform {
     return XFile(picturePath);
   }
 
+  @override
+  Future<List<XFile>> takePictureBurst(int cameraId, int count) {
+    throw CameraException(
+      'burstCaptureNotSupported',
+      'Burst capture is not supported by CameraX.',
+    );
+  }
+
+  @override
+  Future<bool> supportsBurstCapture(int cameraId) async => false;
+
+  @override
+  Future<int> getBurstCaptureMaxCount(int cameraId) async => 0;
+
   /// Sets the flash mode for the selected camera.
   ///
   /// When the [FlashMode.torch] is enabled, any previously set [FlashMode] with

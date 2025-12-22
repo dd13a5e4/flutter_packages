@@ -136,6 +136,22 @@ abstract class CameraPlatform extends PlatformInterface {
     throw UnimplementedError('takePicture() is not implemented.');
   }
 
+  /// Captures multiple images in a single burst and returns the files.
+  ///
+  /// On platforms that do not support burst capture, this throws an
+  /// [UnimplementedError].
+  Future<List<XFile>> takePictureBurst(int cameraId, int count) {
+    throw UnimplementedError('takePictureBurst() is not implemented.');
+  }
+
+  /// Checks whether the selected camera supports burst capture.
+  Future<bool> supportsBurstCapture(int cameraId) async => false;
+
+  /// Returns the maximum burst count supported by the selected camera.
+  ///
+  /// Returns 0 if burst capture is unsupported.
+  Future<int> getBurstCaptureMaxCount(int cameraId) async => 0;
+
   /// Prepare the capture session for video recording.
   Future<void> prepareForVideoRecording() {
     throw UnimplementedError('prepareForVideoRecording() is not implemented.');

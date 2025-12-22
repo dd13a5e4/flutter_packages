@@ -7,6 +7,7 @@ package io.flutter.plugins.camera;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -79,6 +80,8 @@ class Camera
     implements CameraCaptureCallback.CameraCaptureStateListener,
         ImageReader.OnImageAvailableListener {
   private static final String TAG = "Camera";
+  private static final int BURST_CAPTURE_HARD_CAP = 20;
+  private static final long BURST_CAPTURE_MEMORY_BUDGET_BYTES = 64L * 1024L * 1024L;
 
   /**
    * Holds all of the camera features/settings and will be used to update the request builder when
@@ -129,6 +132,17 @@ class Camera
   @VisibleForTesting boolean pausedPreview;
 
   private File captureFile;
+
+  @Nullable private Integer burstCaptureMaxCount;
+  @Nullable private Messages.Result<List<String>> burstFlutterResult;
+  @Nullable private List<File> burstCaptureFiles;
+  @Nullable private String[] burstCapturePaths;
+  private int burstCaptureExpectedCount;
+  private int burstCaptureReceivedCount;
+  private int burstCaptureSavedCount;
+  private boolean burstCaptureInProgress;
+  private boolean burstCaptureCompleted;
+  private final Object burstCaptureLock = new Object();
 
   /** Holds the current capture timeouts */
   private CaptureTimeoutsWrapper captureTimeouts;
@@ -236,7 +250,11 @@ class Camera
 
   @Override
   public void onConverged() {
-    takePictureAfterPrecapture();
+    if (burstCaptureInProgress) {
+      takePictureBurstAfterPrecapture();
+    } else {
+      takePictureAfterPrecapture();
+    }
   }
 
   @Override
@@ -349,13 +367,15 @@ class Camera
       return;
     }
 
+    final int maxCaptureImages = Math.max(1, getBurstCaptureMaxCount());
+
     // Always capture using JPEG format.
     pictureImageReader =
         ImageReader.newInstance(
             resolutionFeature.getCaptureSize().getWidth(),
             resolutionFeature.getCaptureSize().getHeight(),
             ImageFormat.JPEG,
-            1);
+            maxCaptureImages);
 
     imageStreamReader =
         new ImageStreamReader(
@@ -623,6 +643,8 @@ class Camera
       return;
     }
 
+    burstCaptureCompleted = false;
+
     flutterResult = result;
 
     // Create temporary file.
@@ -647,6 +669,122 @@ class Camera
     }
   }
 
+  public void takePictureBurst(int count, @NonNull Messages.Result<List<String>> result) {
+    if (!supportsBurstCapture()) {
+      result.error(
+          new Messages.FlutterError(
+              "burstCaptureNotSupported", "Burst capture is not supported by this camera.", null));
+      return;
+    }
+
+    if (count <= 0) {
+      result.error(
+          new Messages.FlutterError(
+              "invalidBurstCount", "Burst capture count must be greater than 0.", null));
+      return;
+    }
+
+    // Only take one picture at a time.
+    if (cameraCaptureCallback.getCameraState() != CameraState.STATE_PREVIEW) {
+      result.error(
+          new Messages.FlutterError(
+              "captureAlreadyActive", "Picture is currently already being captured", null));
+      return;
+    }
+
+    final int maxCount = getBurstCaptureMaxCount();
+    final int captureCount = Math.min(count, maxCount);
+    if (count > maxCount) {
+      dartMessenger.sendCameraErrorEvent(
+          String.format(
+              Locale.US, "Burst capture truncated: requested %d, using %d.", count, captureCount));
+    }
+
+    burstFlutterResult = result;
+    burstCaptureExpectedCount = captureCount;
+    burstCaptureReceivedCount = 0;
+    burstCaptureSavedCount = 0;
+    burstCaptureCompleted = false;
+    burstCaptureInProgress = true;
+    burstCapturePaths = new String[captureCount];
+    burstCaptureFiles = new ArrayList<>(captureCount);
+
+    final File outputDir = applicationContext.getCacheDir();
+    try {
+      for (int i = 0; i < captureCount; i++) {
+        burstCaptureFiles.add(File.createTempFile("CAP", ".jpg", outputDir));
+      }
+      captureTimeouts.reset();
+    } catch (IOException | SecurityException e) {
+      handleBurstCaptureError("cannotCreateFile", e.getMessage());
+      return;
+    }
+
+    // Listen for pictures being taken.
+    pictureImageReader.setOnImageAvailableListener(this, backgroundHandler);
+
+    final AutoFocusFeature autoFocusFeature = cameraFeatures.getAutoFocus();
+    final boolean isAutoFocusSupported = autoFocusFeature.checkIsSupported();
+    if (isAutoFocusSupported && autoFocusFeature.getValue() == FocusMode.auto) {
+      runPictureAutoFocus();
+    } else {
+      runPrecaptureSequence();
+    }
+  }
+
+  boolean supportsBurstCapture() {
+    final int[] capabilities = cameraProperties.getRequestAvailableCapabilities();
+    if (capabilities == null) {
+      return false;
+    }
+    for (int capability : capabilities) {
+      if (capability == CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_BURST_CAPTURE) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int getBurstCaptureMaxCount() {
+    if (burstCaptureMaxCount != null) {
+      return burstCaptureMaxCount;
+    }
+
+    if (!supportsBurstCapture()) {
+      burstCaptureMaxCount = 0;
+      return 0;
+    }
+
+    final long perImageMaxBytes = Math.max(1L, getBurstCaptureJpegMaxSizeBytes());
+    final long budgetBytes = getBurstCaptureMemoryBudgetBytes();
+    final int computedCount =
+        (int) Math.min(BURST_CAPTURE_HARD_CAP, budgetBytes / perImageMaxBytes);
+    burstCaptureMaxCount = Math.max(1, computedCount);
+    return burstCaptureMaxCount;
+  }
+
+  private long getBurstCaptureJpegMaxSizeBytes() {
+    final Integer jpegMaxSize = cameraProperties.getJpegMaxSize();
+    if (jpegMaxSize != null && jpegMaxSize > 0) {
+      return jpegMaxSize;
+    }
+    final ResolutionFeature resolutionFeature = cameraFeatures.getResolution();
+    final Size captureSize = resolutionFeature.getCaptureSize();
+    return (long) captureSize.getWidth() * captureSize.getHeight() * 3L;
+  }
+
+  private long getBurstCaptureMemoryBudgetBytes() {
+    final ActivityManager activityManager =
+        (ActivityManager) applicationContext.getSystemService(Context.ACTIVITY_SERVICE);
+    if (activityManager == null) {
+      return BURST_CAPTURE_MEMORY_BUDGET_BYTES;
+    }
+    final ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+    activityManager.getMemoryInfo(memoryInfo);
+    final long tenPercentAvailable = memoryInfo.availMem / 10L;
+    return Math.min(BURST_CAPTURE_MEMORY_BUDGET_BYTES, tenPercentAvailable);
+  }
+
   /**
    * Run the precapture sequence for capturing a still image. This method should be called when a
    * response is received in {@link #cameraCaptureCallback} from lockFocus().
@@ -663,8 +801,7 @@ class Camera
 
       // Repeating request to refresh preview session.
       refreshPreviewCaptureSession(
-          null,
-          (code, message) -> dartMessenger.error(flutterResult, "cameraAccess", message, null));
+          null, (code, message) -> reportCaptureError("cameraAccess", message));
 
       // Start precapture.
       cameraCaptureCallback.setCameraState(CameraState.STATE_WAITING_PRECAPTURE_START);
@@ -737,6 +874,129 @@ class Camera
     } catch (CameraAccessException e) {
       dartMessenger.error(flutterResult, "cameraAccess", e.getMessage(), null);
     }
+  }
+
+  private void takePictureBurstAfterPrecapture() {
+    Log.i(TAG, "captureBurstPictures");
+    cameraCaptureCallback.setCameraState(CameraState.STATE_CAPTURING);
+
+    if (burstCaptureExpectedCount <= 0) {
+      handleBurstCaptureError("invalidBurstCount", "Burst capture count must be greater than 0.");
+      return;
+    }
+
+    if (cameraDevice == null) {
+      handleBurstCaptureError("cameraAccess", "Camera device is not available.");
+      return;
+    }
+    if (captureSession == null) {
+      handleBurstCaptureError("cameraAccess", "Capture session is not available.");
+      return;
+    }
+    if (pictureImageReader == null || pictureImageReader.getSurface() == null) {
+      handleBurstCaptureError("cameraAccess", "Image reader is not available.");
+      return;
+    }
+
+    CaptureRequest.Builder stillBuilder;
+    try {
+      stillBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+    } catch (CameraAccessException e) {
+      handleBurstCaptureError("cameraAccess", e.getMessage());
+      return;
+    }
+    stillBuilder.addTarget(pictureImageReader.getSurface());
+
+    // Zoom.
+    stillBuilder.set(
+        CaptureRequest.SCALER_CROP_REGION,
+        previewRequestBuilder.get(CaptureRequest.SCALER_CROP_REGION));
+
+    // Have all features update the builder.
+    updateBuilderSettings(stillBuilder);
+
+    // Orientation.
+    final PlatformChannel.DeviceOrientation lockedOrientation =
+        cameraFeatures.getSensorOrientation().getLockedCaptureOrientation();
+    stillBuilder.set(
+        CaptureRequest.JPEG_ORIENTATION,
+        lockedOrientation == null
+            ? getDeviceOrientationManager().getPhotoOrientation()
+            : getDeviceOrientationManager().getPhotoOrientation(lockedOrientation));
+
+    final CaptureRequest burstRequest = stillBuilder.build();
+    final List<CaptureRequest> burstRequests = new ArrayList<>(burstCaptureExpectedCount);
+    for (int i = 0; i < burstCaptureExpectedCount; i++) {
+      burstRequests.add(burstRequest);
+    }
+
+    CameraCaptureSession.CaptureCallback captureCallback =
+        new CameraCaptureSession.CaptureCallback() {
+          @Override
+          public void onCaptureSequenceCompleted(
+              @NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
+            unlockAutoFocus();
+          }
+        };
+
+    try {
+      Log.i(TAG, "sending burst capture request");
+      captureSession.captureBurst(burstRequests, captureCallback, backgroundHandler);
+    } catch (CameraAccessException e) {
+      handleBurstCaptureError("cameraAccess", e.getMessage());
+    }
+  }
+
+  private void handleBurstCaptureError(@NonNull String errorCode, @Nullable String errorMessage) {
+    final String message =
+        errorMessage == null ? errorCode : String.format(Locale.US, "%s", errorMessage);
+    dartMessenger.sendCameraErrorEvent(
+        String.format(Locale.US, "Burst capture failed: %s", message));
+    finishBurstCapture();
+  }
+
+  private void reportCaptureError(@NonNull String errorCode, @Nullable String errorMessage) {
+    if (burstCaptureInProgress) {
+      handleBurstCaptureError(errorCode, errorMessage);
+      return;
+    }
+    if (flutterResult != null) {
+      dartMessenger.error(flutterResult, errorCode, errorMessage, null);
+    } else {
+      final String message = errorMessage == null ? errorCode : errorMessage;
+      dartMessenger.sendCameraErrorEvent(message);
+    }
+  }
+
+  private void finishBurstCapture() {
+    synchronized (burstCaptureLock) {
+      if (burstCaptureCompleted) {
+        return;
+      }
+      burstCaptureCompleted = true;
+    }
+
+    final List<String> results = new ArrayList<>();
+    if (burstCapturePaths != null) {
+      for (String path : burstCapturePaths) {
+        if (path != null) {
+          results.add(path);
+        }
+      }
+    }
+
+    if (burstFlutterResult != null) {
+      dartMessenger.finish(burstFlutterResult, results);
+    }
+
+    burstFlutterResult = null;
+    burstCaptureFiles = null;
+    burstCapturePaths = null;
+    burstCaptureExpectedCount = 0;
+    burstCaptureReceivedCount = 0;
+    burstCaptureSavedCount = 0;
+    burstCaptureInProgress = false;
+    cameraCaptureCallback.setCameraState(CameraState.STATE_PREVIEW);
   }
 
   @SuppressWarnings("deprecation")
@@ -826,9 +1086,7 @@ class Camera
     }
 
     refreshPreviewCaptureSession(
-        null,
-        (errorCode, errorMessage) ->
-            dartMessenger.error(flutterResult, errorCode, errorMessage, null));
+        null, (errorCode, errorMessage) -> reportCaptureError(errorCode, errorMessage));
   }
 
   public void startVideoRecording(@Nullable EventChannel imageStreamChannel) {
@@ -1232,9 +1490,51 @@ class Camera
   public void onImageAvailable(ImageReader reader) {
     Log.i(TAG, "onImageAvailable");
 
-    // Use acquireNextImage since image reader is only for one image.
+    // Use acquireNextImage to process captured JPEG images.
     Image image = reader.acquireNextImage();
     if (image == null) {
+      return;
+    }
+
+    if (burstCaptureInProgress) {
+      final int imageIndex = burstCaptureReceivedCount;
+      if (imageIndex >= burstCaptureExpectedCount
+          || burstCaptureFiles == null
+          || burstCapturePaths == null) {
+        image.close();
+        return;
+      }
+      final File outputFile = burstCaptureFiles.get(imageIndex);
+      burstCaptureReceivedCount++;
+      backgroundHandler.post(
+          new ImageSaver(
+              image,
+              outputFile,
+              new ImageSaver.Callback() {
+                @Override
+                public void onComplete(@NonNull String absolutePath) {
+                  boolean shouldFinish = false;
+                  synchronized (burstCaptureLock) {
+                    if (burstCaptureCompleted) {
+                      return;
+                    }
+                    burstCapturePaths[imageIndex] = absolutePath;
+                    burstCaptureSavedCount++;
+                    shouldFinish = burstCaptureSavedCount >= burstCaptureExpectedCount;
+                  }
+                  if (shouldFinish) {
+                    finishBurstCapture();
+                  }
+                }
+
+                @Override
+                public void onError(@NonNull String errorCode, @NonNull String errorMessage) {
+                  handleBurstCaptureError(errorCode, errorMessage);
+                }
+              }));
+      return;
+    } else if (burstCaptureCompleted) {
+      image.close();
       return;
     }
 

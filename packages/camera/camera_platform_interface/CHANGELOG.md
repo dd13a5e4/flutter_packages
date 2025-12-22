@@ -1,3 +1,7 @@
+## 2.12.0
+
+* Adds burst capture APIs for platforms that support hardware burst capture.
+
 ## 2.11.0
 
 * Adds a flag to configure a recording to be persistent across camera changes. See
