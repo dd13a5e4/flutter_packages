@@ -150,6 +150,7 @@ class Camera
   private CameraCaptureProperties captureProps;
 
   Messages.Result<String> flutterResult;
+  @Nullable private EventChannel.EventSink activeImageStreamSink;
 
   /** A CameraDeviceWrapper implementation that forwards calls to a CameraDevice. */
   private class DefaultCameraDeviceWrapper implements CameraDeviceWrapper {
@@ -997,6 +998,7 @@ class Camera
     burstCaptureSavedCount = 0;
     burstCaptureInProgress = false;
     cameraCaptureCallback.setCameraState(CameraState.STATE_PREVIEW);
+    restorePreviewAfterBurst();
   }
 
   @SuppressWarnings("deprecation")
@@ -1478,8 +1480,16 @@ class Camera
       throws CameraAccessException {
     setStreamHandler(imageStreamChannel);
 
-    startCapture(false, true);
-    Log.i(TAG, "startPreviewWithImageStream");
+    ensureImageStreamReader();
+    try {
+      startCapture(false, true);
+      Log.i(TAG, "startPreviewWithImageStream");
+    } catch (CameraAccessException e) {
+      Log.w(TAG, "startPreviewWithImageStream failed, retrying.", e);
+      closeCaptureSession();
+      recreateImageStreamReader();
+      startCapture(false, true);
+    }
   }
 
   /**
@@ -1583,6 +1593,7 @@ class Camera
         new EventChannel.StreamHandler() {
           @Override
           public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
+            activeImageStreamSink = imageStreamSink;
             setImageStreamImageAvailableListener(imageStreamSink);
           }
 
@@ -1593,6 +1604,7 @@ class Camera
             }
 
             imageStreamReader.removeListener(backgroundHandler);
+            activeImageStreamSink = null;
           }
         });
   }
@@ -1603,6 +1615,38 @@ class Camera
     }
 
     imageStreamReader.subscribeListener(this.captureProps, imageStreamSink, backgroundHandler);
+  }
+
+  private void ensureImageStreamReader() {
+    if (imageStreamReader != null) {
+      return;
+    }
+    final ResolutionFeature resolutionFeature = cameraFeatures.getResolution();
+    imageStreamReader =
+        new ImageStreamReader(
+            resolutionFeature.getPreviewSize().getWidth(),
+            resolutionFeature.getPreviewSize().getHeight(),
+            this.imageFormatGroup,
+            1);
+  }
+
+  private void recreateImageStreamReader() {
+    if (imageStreamReader != null) {
+      imageStreamReader.close();
+      imageStreamReader = null;
+    }
+    ensureImageStreamReader();
+    if (activeImageStreamSink != null) {
+      setImageStreamImageAvailableListener(activeImageStreamSink);
+    }
+  }
+
+  private void restorePreviewAfterBurst() {
+    if (activeImageStreamSink != null) {
+      setImageStreamImageAvailableListener(activeImageStreamSink);
+    }
+    refreshPreviewCaptureSession(
+        null, (code, message) -> dartMessenger.sendCameraErrorEvent(message));
   }
 
   void closeCaptureSession() {
