@@ -15,6 +15,7 @@ import android.util.Size;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import java.lang.reflect.Field;
 
 /**
  * Implementation of the @see CameraProperties interface using the @see
@@ -173,6 +174,27 @@ public class CameraPropertiesImpl implements CameraProperties {
   @Nullable
   @Override
   public Integer getJpegMaxSize() {
-    return cameraCharacteristics.get(CameraCharacteristics.JPEG_MAX_SIZE);
+    final CameraCharacteristics.Key<Integer> key = getJpegMaxSizeKey();
+    if (key == null) {
+      return null;
+    }
+    return cameraCharacteristics.get(key);
+  }
+
+  @Nullable
+  private static CameraCharacteristics.Key<Integer> getJpegMaxSizeKey() {
+    try {
+      final Field field = CameraCharacteristics.class.getField("JPEG_MAX_SIZE");
+      final Object fieldValue = field.get(null);
+      if (fieldValue instanceof CameraCharacteristics.Key) {
+        @SuppressWarnings("unchecked")
+        final CameraCharacteristics.Key<Integer> key =
+            (CameraCharacteristics.Key<Integer>) fieldValue;
+        return key;
+      }
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      // Not available on this API level.
+    }
+    return null;
   }
 }

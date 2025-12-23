@@ -1,6 +1,7 @@
 ## 0.11.0+11
 
 * Adds hardware burst capture support for Android using Camera2.
+* Fixes compilation when `JPEG_MAX_SIZE` is unavailable on older Android SDKs.
 
 ## 0.10.10+11
 
