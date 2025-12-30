@@ -414,6 +414,8 @@ class AVFoundationCamera extends CameraPlatform {
         return PlatformFocusMode.locked;
       case FocusMode.auto:
         return PlatformFocusMode.auto;
+      case FocusMode.fixed:
+        return PlatformFocusMode.auto;
     }
     // The enum comes from a different package, which could get a new value at
     // any time, so provide a fallback that ensures this won't break when used

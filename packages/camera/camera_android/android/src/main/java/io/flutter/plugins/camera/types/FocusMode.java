@@ -10,7 +10,8 @@ import androidx.annotation.Nullable;
 // Mirrors focus_mode.dart
 public enum FocusMode {
   auto("auto"),
-  locked("locked");
+  locked("locked"),
+  fixed("fixed");
 
   private final String strValue;
 

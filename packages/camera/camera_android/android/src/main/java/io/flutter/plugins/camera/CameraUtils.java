@@ -154,6 +154,8 @@ public final class CameraUtils {
         return Messages.PlatformFocusMode.AUTO;
       case locked:
         return Messages.PlatformFocusMode.LOCKED;
+      case fixed:
+        return Messages.PlatformFocusMode.FIXED;
     }
     return Messages.PlatformFocusMode.AUTO;
   }
@@ -171,6 +173,8 @@ public final class CameraUtils {
         return FocusMode.auto;
       case LOCKED:
         return FocusMode.locked;
+      case FIXED:
+        return FocusMode.fixed;
     }
     throw new IllegalStateException("Unreachable code");
   }

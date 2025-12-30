@@ -56,6 +56,9 @@ class FakeController extends ValueNotifier<CameraValue>
   Future<double> getMinZoomLevel() async => 1.0;
 
   @override
+  Future<bool> isFixedFocusSupported() async => false;
+
+  @override
   ImageFormatGroup? get imageFormatGroup => null;
 
   @override

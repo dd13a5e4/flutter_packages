@@ -361,6 +361,10 @@ class AndroidCamera extends CameraPlatform {
   }
 
   @override
+  Future<bool> isFixedFocusSupported(int cameraId) =>
+      _hostApi.isFixedFocusSupported();
+
+  @override
   Future<double> getMaxZoomLevel(int cameraId) async {
     return _hostApi.getMaxZoomLevel();
   }

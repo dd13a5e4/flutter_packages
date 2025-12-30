@@ -7,9 +7,7 @@ package io.flutter.plugins.camera.features.autofocus;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,14 +36,25 @@ public class AutoFocusFeatureTest {
   @Test
   public void getValue_shouldReturnAutoIfNotSet() {
     CameraProperties mockCameraProperties = mock(CameraProperties.class);
+    when(mockCameraProperties.getLensInfoMinimumFocusDistance()).thenReturn(1.0F);
     AutoFocusFeature autoFocusFeature = new AutoFocusFeature(mockCameraProperties, false);
 
     assertEquals(FocusMode.auto, autoFocusFeature.getValue());
   }
 
   @Test
+  public void getValue_shouldReturnFixedWhenFocusIsFixed() {
+    CameraProperties mockCameraProperties = mock(CameraProperties.class);
+    when(mockCameraProperties.getLensInfoMinimumFocusDistance()).thenReturn(0.0F);
+    AutoFocusFeature autoFocusFeature = new AutoFocusFeature(mockCameraProperties, false);
+
+    assertEquals(FocusMode.fixed, autoFocusFeature.getValue());
+  }
+
+  @Test
   public void getValue_shouldEchoTheSetValue() {
     CameraProperties mockCameraProperties = mock(CameraProperties.class);
+    when(mockCameraProperties.getLensInfoMinimumFocusDistance()).thenReturn(1.0F);
     AutoFocusFeature autoFocusFeature = new AutoFocusFeature(mockCameraProperties, false);
     FocusMode expectedValue = FocusMode.locked;
 
@@ -111,7 +120,7 @@ public class AutoFocusFeatureTest {
   }
 
   @Test
-  public void updateBuilderShouldReturnWhenCheckIsSupportedIsFalse() {
+  public void updateBuilder_shouldSetControlModeOffWhenFixedFocus() {
     CameraProperties mockCameraProperties = mock(CameraProperties.class);
     CaptureRequest.Builder mockBuilder = mock(CaptureRequest.Builder.class);
     AutoFocusFeature autoFocusFeature = new AutoFocusFeature(mockCameraProperties, false);
@@ -121,7 +130,8 @@ public class AutoFocusFeatureTest {
 
     autoFocusFeature.updateBuilder(mockBuilder);
 
-    verify(mockBuilder, never()).set(any(), any());
+    verify(mockBuilder, times(1))
+        .set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
   }
 
   @Test

@@ -1283,8 +1283,26 @@ class Camera
           // Cancel current AF trigger and set AF to idle again.
           unlockAutoFocus();
           break;
+        case fixed:
+          if (captureSession == null) {
+            Log.i(TAG, "[unlockAutoFocus] captureSession null, returning");
+            return;
+          }
+          try {
+            captureSession.setRepeatingRequest(
+                previewRequestBuilder.build(), null, backgroundHandler);
+          } catch (CameraAccessException e) {
+            throw new Messages.FlutterError(
+                "setFocusModeFailed", "Error setting focus mode: " + e.getMessage(), null);
+          }
+          break;
       }
     }
+  }
+
+  /** Returns whether the camera uses fixed focus. */
+  public boolean isFixedFocusSupported() {
+    return cameraFeatures.getAutoFocus().isFixedFocus();
   }
 
   /**

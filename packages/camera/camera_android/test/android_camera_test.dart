@@ -780,10 +780,23 @@ void main() {
       // Act
       await camera.setFocusMode(cameraId, FocusMode.auto);
       await camera.setFocusMode(cameraId, FocusMode.locked);
+      await camera.setFocusMode(cameraId, FocusMode.fixed);
 
       // Assert
       verify(mockCameraApi.setFocusMode(PlatformFocusMode.auto)).called(1);
       verify(mockCameraApi.setFocusMode(PlatformFocusMode.locked)).called(1);
+      verify(mockCameraApi.setFocusMode(PlatformFocusMode.fixed)).called(1);
+    });
+
+    test('Should report fixed focus support', () async {
+      // Arrange
+      when(mockCameraApi.isFixedFocusSupported()).thenAnswer((_) async => true);
+
+      // Act
+      final bool isSupported = await camera.isFixedFocusSupported(cameraId);
+
+      // Assert
+      expect(isSupported, true);
     });
 
     test('Should build a texture widget as preview widget', () async {

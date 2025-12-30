@@ -885,6 +885,20 @@ class CameraController extends ValueNotifier<CameraValue> {
       await CameraPlatform.instance.setFocusMode(_cameraId, mode);
       value = value.copyWith(focusMode: mode);
     } on PlatformException catch (e) {
+      final FocusMode? appliedMode = _focusModeFromDetails(e.details);
+      if (appliedMode != null) {
+        value = value.copyWith(focusMode: appliedMode);
+      }
+      throw CameraException(e.code, e.message);
+    }
+  }
+
+  /// Returns whether the camera uses fixed focus.
+  Future<bool> isFixedFocusSupported() async {
+    _throwIfNotInitialized('isFixedFocusSupported');
+    try {
+      return await CameraPlatform.instance.isFixedFocusSupported(_cameraId);
+    } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
   }
@@ -966,6 +980,20 @@ class CameraController extends ValueNotifier<CameraValue> {
         '$functionName() was called on a disposed CameraController.',
       );
     }
+  }
+
+  FocusMode? _focusModeFromDetails(Object? details) {
+    if (details is Map<Object?, Object?>) {
+      final Object? appliedMode = details['applied'];
+      if (appliedMode is String) {
+        try {
+          return deserializeFocusMode(appliedMode);
+        } on ArgumentError {
+          return null;
+        }
+      }
+    }
+    return null;
   }
 
   @override

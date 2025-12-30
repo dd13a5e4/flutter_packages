@@ -1,3 +1,7 @@
+## 0.6.26
+
+* Falls back to auto focus and throws when `FocusMode.fixed` is requested.
+
 ## 0.6.25
 
 * Reports unsupported status for the new burst capture APIs.

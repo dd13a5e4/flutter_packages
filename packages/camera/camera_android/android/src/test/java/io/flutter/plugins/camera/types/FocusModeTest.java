@@ -18,6 +18,10 @@ public class FocusModeTest {
         "Returns FocusMode.locked for 'locked'",
         FocusMode.getValueForString("locked"),
         FocusMode.locked);
+    assertEquals(
+        "Returns FocusMode.fixed for 'fixed'",
+        FocusMode.getValueForString("fixed"),
+        FocusMode.fixed);
   }
 
   @Test
@@ -30,5 +34,6 @@ public class FocusModeTest {
   public void toString_returnsCorrectValue() {
     assertEquals("Returns 'auto' for FocusMode.auto", FocusMode.auto.toString(), "auto");
     assertEquals("Returns 'locked' for FocusMode.locked", FocusMode.locked.toString(), "locked");
+    assertEquals("Returns 'fixed' for FocusMode.fixed", FocusMode.fixed.toString(), "fixed");
   }
 }

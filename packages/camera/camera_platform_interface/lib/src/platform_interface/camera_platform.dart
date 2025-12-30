@@ -278,6 +278,11 @@ abstract class CameraPlatform extends PlatformInterface {
     throw UnimplementedError('setFocusPoint() is not implemented.');
   }
 
+  /// Returns whether the selected camera uses fixed focus.
+  ///
+  /// Platforms that do not support this should return false.
+  Future<bool> isFixedFocusSupported(int cameraId) async => false;
+
   /// Gets the maximum supported zoom level for the selected camera.
   Future<double> getMaxZoomLevel(int cameraId) {
     throw UnimplementedError('getMaxZoomLevel() is not implemented.');

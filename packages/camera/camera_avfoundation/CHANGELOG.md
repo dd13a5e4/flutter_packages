@@ -1,3 +1,7 @@
+## 0.9.23+4
+
+* Maps `FocusMode.fixed` to `FocusMode.auto` on iOS.
+
 ## 0.9.22+4
 
 * Migrates `FLTCameraDeviceDiscovering` and `FLTDeviceOrientationProviding` classes to Swift.

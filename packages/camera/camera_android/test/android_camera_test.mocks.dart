@@ -294,6 +294,15 @@ class MockCameraApi extends _i1.Mock implements _i2.CameraApi {
           as _i4.Future<void>);
 
   @override
+  _i4.Future<bool> isFixedFocusSupported() =>
+      (super.noSuchMethod(
+            Invocation.method(#isFixedFocusSupported, []),
+            returnValue: _i4.Future<bool>.value(false),
+            returnValueForMissingStub: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
+
+  @override
   _i4.Future<double> getMaxZoomLevel() =>
       (super.noSuchMethod(
             Invocation.method(#getMaxZoomLevel, []),

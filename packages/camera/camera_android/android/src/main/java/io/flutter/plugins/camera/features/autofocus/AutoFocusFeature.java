@@ -14,6 +14,7 @@ import io.flutter.plugins.camera.features.CameraFeature;
 /** Controls the auto focus configuration on the {@see anddroid.hardware.camera2} API. */
 public class AutoFocusFeature extends CameraFeature<FocusMode> {
   @NonNull private FocusMode currentSetting = FocusMode.auto;
+  private final boolean isFixedFocus;
 
   // When switching recording modes this feature is re-created with the appropriate setting here.
   private final boolean recordingVideo;
@@ -27,6 +28,11 @@ public class AutoFocusFeature extends CameraFeature<FocusMode> {
   public AutoFocusFeature(@NonNull CameraProperties cameraProperties, boolean recordingVideo) {
     super(cameraProperties);
     this.recordingVideo = recordingVideo;
+    final Float minFocusDistance = cameraProperties.getLensInfoMinimumFocusDistance();
+    this.isFixedFocus = minFocusDistance == null || minFocusDistance == 0;
+    if (isFixedFocus) {
+      currentSetting = FocusMode.fixed;
+    }
   }
 
   @NonNull
@@ -39,31 +45,39 @@ public class AutoFocusFeature extends CameraFeature<FocusMode> {
   @SuppressLint("KotlinPropertyAccess")
   @Override
   public FocusMode getValue() {
-    return currentSetting;
+    return isFixedFocus ? FocusMode.fixed : currentSetting;
   }
 
   @Override
   public void setValue(@NonNull FocusMode value) {
+    if (isFixedFocus) {
+      this.currentSetting = FocusMode.fixed;
+      return;
+    }
     this.currentSetting = value;
+  }
+
+  public boolean isFixedFocus() {
+    return isFixedFocus;
   }
 
   @Override
   public boolean checkIsSupported() {
+    if (isFixedFocus) {
+      return false;
+    }
     int[] modes = cameraProperties.getControlAutoFocusAvailableModes();
 
-    final Float minFocus = cameraProperties.getLensInfoMinimumFocusDistance();
-
-    // Check if the focal length of the lens is fixed. If the minimum focus distance == 0, then the
-    // focal length  is fixed. The minimum focus distance can be null on some devices: https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#LENS_INFO_MINIMUM_FOCUS_DISTANCE
-    boolean isFixedLength = minFocus == null || minFocus == 0;
-
-    return !isFixedLength
-        && !(modes.length == 0
-            || (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF));
+    return !(modes.length == 0
+        || (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF));
   }
 
   @Override
   public void updateBuilder(@NonNull CaptureRequest.Builder requestBuilder) {
+    if (isFixedFocus || currentSetting == FocusMode.fixed) {
+      requestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+      return;
+    }
     if (!checkIsSupported()) {
       return;
     }

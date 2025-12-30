@@ -284,6 +284,12 @@ final class CameraApiImpl implements Messages.CameraApi {
     }
   }
 
+  @NonNull
+  @Override
+  public Boolean isFixedFocusSupported() {
+    return camera != null && camera.isFixedFocusSupported();
+  }
+
   @Override
   public void startImageStream() {
     try {

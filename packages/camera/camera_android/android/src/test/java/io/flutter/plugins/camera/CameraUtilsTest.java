@@ -100,6 +100,7 @@ public class CameraUtilsTest {
     assertEquals(CameraUtils.focusModeToPigeon(FocusMode.auto), Messages.PlatformFocusMode.AUTO);
     assertEquals(
         CameraUtils.focusModeToPigeon(FocusMode.locked), Messages.PlatformFocusMode.LOCKED);
+    assertEquals(CameraUtils.focusModeToPigeon(FocusMode.fixed), Messages.PlatformFocusMode.FIXED);
   }
 
   @Test
@@ -107,6 +108,8 @@ public class CameraUtilsTest {
     assertEquals(CameraUtils.focusModeFromPigeon(Messages.PlatformFocusMode.AUTO), FocusMode.auto);
     assertEquals(
         CameraUtils.focusModeFromPigeon(Messages.PlatformFocusMode.LOCKED), FocusMode.locked);
+    assertEquals(
+        CameraUtils.focusModeFromPigeon(Messages.PlatformFocusMode.FIXED), FocusMode.fixed);
   }
 
   @Test

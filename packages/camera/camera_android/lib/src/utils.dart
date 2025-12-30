@@ -74,6 +74,7 @@ FocusMode focusModeFromPlatform(PlatformFocusMode focusMode) =>
     switch (focusMode) {
       PlatformFocusMode.auto => FocusMode.auto,
       PlatformFocusMode.locked => FocusMode.locked,
+      PlatformFocusMode.fixed => FocusMode.fixed,
     };
 
 /// Converts a [FocusMode] to [PlatformFocusMode].
@@ -83,6 +84,8 @@ PlatformFocusMode focusModeToPlatform(FocusMode focusMode) {
       return PlatformFocusMode.auto;
     case FocusMode.locked:
       return PlatformFocusMode.locked;
+    case FocusMode.fixed:
+      return PlatformFocusMode.fixed;
   }
   // This enum is defined outside of this package. This fall-through case
   // ensures that the code does not break if a new value is ever added.

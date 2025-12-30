@@ -1957,6 +1957,14 @@ class MockCameraPlatform extends Mock
       );
 
   @override
+  Future<bool> isFixedFocusSupported(int? cameraId) async =>
+      super.noSuchMethod(
+            Invocation.method(#isFixedFocusSupported, <Object?>[cameraId]),
+            returnValue: Future<bool>.value(false),
+          )
+          as Future<bool>;
+
+  @override
   Future<double> getMinExposureOffset(int? cameraId) async =>
       super.noSuchMethod(
             Invocation.method(#getMinExposureOffset, <Object?>[cameraId]),

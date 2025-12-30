@@ -24,6 +24,7 @@ public class FocusPointFeature extends CameraFeature<Point> {
   @Nullable private Point focusPoint;
   private MeteringRectangle focusRectangle;
   @NonNull private final SensorOrientationFeature sensorOrientationFeature;
+  private final boolean isFixedFocus;
 
   /**
    * Creates a new instance of the {@link FocusPointFeature}.
@@ -35,6 +36,8 @@ public class FocusPointFeature extends CameraFeature<Point> {
       @NonNull SensorOrientationFeature sensorOrientationFeature) {
     super(cameraProperties);
     this.sensorOrientationFeature = sensorOrientationFeature;
+    final Float minFocusDistance = cameraProperties.getLensInfoMinimumFocusDistance();
+    this.isFixedFocus = minFocusDistance == null || minFocusDistance == 0;
   }
 
   /**
@@ -69,6 +72,9 @@ public class FocusPointFeature extends CameraFeature<Point> {
   // Whether or not this camera can set the focus point.
   @Override
   public boolean checkIsSupported() {
+    if (isFixedFocus) {
+      return false;
+    }
     Integer supportedRegions = cameraProperties.getControlMaxRegionsAutoFocus();
     return supportedRegions != null && supportedRegions > 0;
   }

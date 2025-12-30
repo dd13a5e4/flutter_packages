@@ -42,6 +42,10 @@ better support for more devices than `camera_android`, but has some limitations;
 for more details. If you wish to use the [`camera_android`][4] implementation of the camera plugin
 built with Camera2 that lacks these limitations, please follow [these instructions][5].
 
+Fixed focus (`FocusMode.fixed`) and `CameraController.isFixedFocusSupported()` are only supported
+by the `camera_android` (Camera2) implementation. On `camera_android_camerax`, requesting fixed
+focus falls back to `FocusMode.auto` and throws a `CameraException`.
+
 If you wish to allow image streaming while your app is in the background, there are additional steps required;
 please see [these instructions][6] for more details.
 

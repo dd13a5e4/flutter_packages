@@ -61,6 +61,7 @@ void main() {
     test('focusModeFromPlatform() should convert correctly', () {
       expect(focusModeFromPlatform(PlatformFocusMode.auto), FocusMode.auto);
       expect(focusModeFromPlatform(PlatformFocusMode.locked), FocusMode.locked);
+      expect(focusModeFromPlatform(PlatformFocusMode.fixed), FocusMode.fixed);
     });
   });
 }

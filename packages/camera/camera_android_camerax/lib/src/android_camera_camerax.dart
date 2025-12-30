@@ -204,6 +204,14 @@ class AndroidCameraCameraX extends CameraPlatform {
   /// set for the camera in use.
   static const String zoomStateNotSetErrorCode = 'zoomStateNotSet';
 
+  /// Error code indicating a focus mode was requested that is not supported.
+  static const String focusModeNotSupportedErrorCode = 'focusModeNotSupported';
+
+  /// Error message for fixed focus requests on CameraX.
+  static const String fixedFocusNotSupportedMessage =
+      'Fixed focus is not supported by camera_android_camerax. '
+      'Use the camera_android (camera2) implementation instead.';
+
   /// Whether or not the capture orientation is locked.
   ///
   /// Indicates a new target rotation should not be set as it has been locked by
@@ -659,14 +667,31 @@ class AndroidCameraCameraX extends CameraPlatform {
   ///   * Locked focus mode is unset by setting [FocusMode.auto].
   @override
   Future<void> setFocusMode(int cameraId, FocusMode mode) async {
+    final bool isFixedFocusRequested = mode == FocusMode.fixed;
+    if (isFixedFocusRequested) {
+      cameraErrorStreamController.add(fixedFocusNotSupportedMessage);
+      mode = FocusMode.auto;
+    }
+
     if (_currentFocusMode == mode) {
       // Desired focus mode is already set.
+      if (isFixedFocusRequested) {
+        throw PlatformException(
+          code: focusModeNotSupportedErrorCode,
+          message: fixedFocusNotSupportedMessage,
+          details: const <String, Object>{
+            'requested': 'fixed',
+            'applied': 'auto',
+          },
+        );
+      }
       return;
     }
 
     MeteringPoint? autoFocusPoint;
     bool? disableAutoCancel;
     switch (mode) {
+      case FocusMode.fixed:
       case FocusMode.auto:
         // Determine auto-focus point to restore, if any. We do not restore
         // default auto-focus point if set previously to lock focus.
@@ -716,6 +741,13 @@ class AndroidCameraCameraX extends CameraPlatform {
 
     if (!focusAndMeteringWasSuccessful) {
       // Do not update current focus mode.
+      if (isFixedFocusRequested) {
+        throw PlatformException(
+          code: focusModeNotSupportedErrorCode,
+          message: fixedFocusNotSupportedMessage,
+          details: const <String, Object>{'requested': 'fixed'},
+        );
+      }
       return;
     }
 
@@ -728,6 +760,17 @@ class AndroidCameraCameraX extends CameraPlatform {
     if (_currentExposureMode == ExposureMode.auto &&
         _currentFocusMode == FocusMode.locked) {
       await setExposureMode(cameraId, _currentExposureMode);
+    }
+
+    if (isFixedFocusRequested) {
+      throw PlatformException(
+        code: focusModeNotSupportedErrorCode,
+        message: fixedFocusNotSupportedMessage,
+        details: const <String, Object>{
+          'requested': 'fixed',
+          'applied': 'auto',
+        },
+      );
     }
   }
 

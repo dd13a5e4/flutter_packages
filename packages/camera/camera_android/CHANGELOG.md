@@ -1,3 +1,8 @@
+## 0.11.1+11
+
+* Adds fixed focus support on camera2 with `FocusMode.fixed` and fixed focus
+  support querying.
+
 ## 0.11.0+11
 
 * Adds hardware burst capture support for Android using Camera2.

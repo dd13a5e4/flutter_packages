@@ -39,7 +39,7 @@ enum PlatformDeviceOrientation {
 enum PlatformExposureMode { auto, locked }
 
 /// Pigeon equivalent of [FocusMode].
-enum PlatformFocusMode { auto, locked }
+enum PlatformFocusMode { auto, locked, fixed }
 
 /// Data needed for [CameraInitializedEvent].
 class PlatformCameraState {
@@ -196,6 +196,9 @@ abstract class CameraApi {
   /// A null value resets to the default focus point.
   @async
   void setFocusPoint(PlatformPoint? point);
+
+  /// Returns whether the camera uses fixed focus.
+  bool isFixedFocusSupported();
 
   /// Returns the maximum zoom level of the camera with the given ID.
   double getMaxZoomLevel();

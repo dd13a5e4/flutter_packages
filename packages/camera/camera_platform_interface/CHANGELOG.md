@@ -1,3 +1,7 @@
+## 2.13.0
+
+* Adds `FocusMode.fixed` and `CameraPlatform.isFixedFocusSupported`.
+
 ## 2.12.0
 
 * Adds burst capture APIs for platforms that support hardware burst capture.

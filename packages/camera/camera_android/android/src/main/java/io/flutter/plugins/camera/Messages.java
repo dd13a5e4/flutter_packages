@@ -114,7 +114,8 @@ public class Messages {
   /** Pigeon equivalent of [FocusMode]. */
   public enum PlatformFocusMode {
     AUTO(0),
-    LOCKED(1);
+    LOCKED(1),
+    FIXED(2);
 
     final int index;
 
@@ -1038,6 +1039,9 @@ public class Messages {
      * <p>A null value resets to the default focus point.
      */
     void setFocusPoint(@Nullable PlatformPoint point, @NonNull VoidResult result);
+    /** Returns whether the camera uses fixed focus. */
+    @NonNull
+    Boolean isFixedFocusSupported();
     /** Returns the maximum zoom level of the camera with the given ID. */
     @NonNull
     Double getMaxZoomLevel();
@@ -1713,6 +1717,29 @@ public class Messages {
                     };
 
                 api.setFocusPoint(pointArg, resultCallback);
+              });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(
+                binaryMessenger,
+                "dev.flutter.pigeon.camera_android.CameraApi.isFixedFocusSupported"
+                    + messageChannelSuffix,
+                getCodec());
+        if (api != null) {
+          channel.setMessageHandler(
+              (message, reply) -> {
+                ArrayList<Object> wrapped = new ArrayList<>();
+                try {
+                  Boolean output = api.isFixedFocusSupported();
+                  wrapped.add(0, output);
+                } catch (Throwable exception) {
+                  wrapped = wrapError(exception);
+                }
+                reply.reply(wrapped);
               });
         } else {
           channel.setMessageHandler(null);

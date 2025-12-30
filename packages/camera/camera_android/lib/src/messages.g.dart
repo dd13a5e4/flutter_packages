@@ -47,7 +47,7 @@ enum PlatformDeviceOrientation {
 enum PlatformExposureMode { auto, locked }
 
 /// Pigeon equivalent of [FocusMode].
-enum PlatformFocusMode { auto, locked }
+enum PlatformFocusMode { auto, locked, fixed }
 
 /// Pigeon equivalent of [ResolutionPreset].
 enum PlatformResolutionPreset { low, medium, high, veryHigh, ultraHigh, max }
@@ -1011,6 +1011,36 @@ class CameraApi {
       );
     } else {
       return;
+    }
+  }
+
+  /// Returns whether the camera uses fixed focus.
+  Future<bool> isFixedFocusSupported() async {
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.camera_android.CameraApi.isFixedFocusSupported$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
+          pigeonVar_channelName,
+          pigeonChannelCodec,
+          binaryMessenger: pigeonVar_binaryMessenger,
+        );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as bool?)!;
     }
   }
 

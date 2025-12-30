@@ -6808,6 +6808,50 @@ void main() {
   );
 
   test(
+    'setFocusMode throws and emits an error when fixed focus is requested',
+    () async {
+      final AndroidCameraCameraX camera = AndroidCameraCameraX();
+      const int cameraId = 4;
+      final StreamQueue<CameraErrorEvent> cameraErrorStreamQueue =
+          StreamQueue<CameraErrorEvent>(camera.onCameraError(cameraId));
+
+      await expectLater(
+        () => camera.setFocusMode(cameraId, FocusMode.fixed),
+        throwsA(
+          isA<PlatformException>()
+              .having(
+                (PlatformException error) => error.code,
+                'code',
+                AndroidCameraCameraX.focusModeNotSupportedErrorCode,
+              )
+              .having(
+                (PlatformException error) => error.message,
+                'message',
+                AndroidCameraCameraX.fixedFocusNotSupportedMessage,
+              )
+              .having(
+                (PlatformException error) => error.details,
+                'details',
+                allOf(
+                  containsPair('requested', 'fixed'),
+                  containsPair('applied', 'auto'),
+                ),
+              ),
+        ),
+      );
+
+      expect(
+        await cameraErrorStreamQueue.next,
+        const CameraErrorEvent(
+          cameraId,
+          AndroidCameraCameraX.fixedFocusNotSupportedMessage,
+        ),
+      );
+      await cameraErrorStreamQueue.cancel();
+    },
+  );
+
+  test(
     'setFocusMode does nothing if setting locked focus mode and is already using locked focus mode',
     () async {
       final AndroidCameraCameraX camera = AndroidCameraCameraX();
