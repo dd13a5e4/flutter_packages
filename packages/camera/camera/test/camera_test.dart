@@ -1009,6 +1009,80 @@ void main() {
       },
     );
 
+    test(
+      'setFocusMode() updates value from $PlatformException details',
+      () async {
+        final CameraController cameraController = CameraController(
+          const CameraDescription(
+            name: 'cam',
+            lensDirection: CameraLensDirection.back,
+            sensorOrientation: 90,
+          ),
+          ResolutionPreset.max,
+        );
+        await cameraController.initialize();
+
+        await cameraController.setFocusMode(FocusMode.locked);
+        expect(cameraController.value.focusMode, FocusMode.locked);
+
+        when(
+          CameraPlatform.instance.setFocusMode(
+            cameraController.cameraId,
+            FocusMode.fixed,
+          ),
+        ).thenThrow(
+          PlatformException(
+            code: 'TEST_ERROR',
+            message: 'This is a test error message',
+            details: const <String, Object>{
+              'requested': 'fixed',
+              'applied': 'auto',
+            },
+          ),
+        );
+
+        await expectLater(
+          cameraController.setFocusMode(FocusMode.fixed),
+          throwsA(
+            isA<CameraException>().having(
+              (CameraException error) => error.description,
+              'TEST_ERROR',
+              'This is a test error message',
+            ),
+          ),
+        );
+
+        expect(cameraController.value.focusMode, FocusMode.auto);
+      },
+    );
+
+    test('isFixedFocusSupported() calls $CameraPlatform', () async {
+      final CameraController cameraController = CameraController(
+        const CameraDescription(
+          name: 'cam',
+          lensDirection: CameraLensDirection.back,
+          sensorOrientation: 90,
+        ),
+        ResolutionPreset.max,
+      );
+      await cameraController.initialize();
+
+      when(
+        CameraPlatform.instance.isFixedFocusSupported(
+          cameraController.cameraId,
+        ),
+      ).thenAnswer((_) => Future<bool>.value(true));
+
+      final bool isSupported = await cameraController.isFixedFocusSupported();
+
+      expect(isSupported, true);
+      verify(
+        CameraPlatform.instance.isFixedFocusSupported(
+          cameraController.cameraId,
+        ),
+      ).called(1);
+    });
+
     test('getMinExposureOffset() calls $CameraPlatform', () async {
       final CameraController cameraController = CameraController(
         const CameraDescription(
